@@ -117,7 +117,7 @@ module.exports = {
                 return res.json(returnCourse);
             });
             // return res.json(ReferenceExample);
-        });
+        }).collation({ locale: 'en', strength: 2 });
     },
 
     /**
@@ -129,6 +129,7 @@ module.exports = {
     create: function (req, res) {
         let newReferenceExample = new ReferenceExampleModel({
             functionName: req.body.functionName,
+            functionParams: req.body.functionParams,
             type: req.body.type,
             info: req.body.info,
             suggestedCourse: req.body.suggestedCourse,
@@ -197,6 +198,7 @@ module.exports = {
 
 
                     // ReferenceExample.functionName = req.body.functionName ? req.body.functionName : ReferenceExample.functionName;
+                    ReferenceExample.functionParams = req.body.functionParams ? req.body.functionParams : ReferenceExample.functionParams;
                     ReferenceExample.type = req.body.type ? req.body.type : ReferenceExample.type;
                     ReferenceExample.info = req.body.info ? req.body.info : ReferenceExample.info;
                     ReferenceExample.code = req.body.code ? req.body.code : ReferenceExample.code;
@@ -243,6 +245,7 @@ module.exports = {
                     }
 
                     // ReferenceExample.functionName = req.body.functionName ? req.body.functionName : ReferenceExample.functionName;
+                    ReferenceExample.functionParams = req.body.functionParams ? req.body.functionParams : ReferenceExample.functionParams;
                     ReferenceExample.type = req.body.type ? req.body.type : ReferenceExample.type;
                     ReferenceExample.info = req.body.info ? req.body.info : ReferenceExample.info;
                     ReferenceExample.code = req.body.code ? req.body.code : ReferenceExample.code;

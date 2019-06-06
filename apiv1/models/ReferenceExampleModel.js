@@ -3,6 +3,7 @@ let Schema = mongoose.Schema;
 
 let ReferenceExampleSchema = new Schema({
     'functionName': String,
+    'functionParams': Array,
     'type': String,
     'info': String,
     'suggestedCourse': String,
