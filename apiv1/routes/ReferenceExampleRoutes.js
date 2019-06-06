@@ -12,7 +12,7 @@ router.get('/', ReferenceExampleController.list);
  * GET
  * Gets the example with the corresponding function name
  */
-router.get('/:functionname', ReferenceExampleController.show_via_functionName);
+router.get('/:functionName', ReferenceExampleController.show_via_functionName);
 
 /*
  * GET
@@ -31,7 +31,7 @@ router.post('/', ReferenceExampleController.create);
  * Modifies an existing example with the corresponding function name
  * by taking in a JSON object
  */
-router.put('/:functionname', ReferenceExampleController.update_via_functionName);
+router.put('/:functionName', ReferenceExampleController.update_via_functionName);
 
 /*
  * PUT
@@ -44,7 +44,7 @@ router.put('/id/:id', ReferenceExampleController.update);
  * DELETE
  * Deletes an example with the corresponding lesson number
  */
-router.delete('/:functionname', ReferenceExampleController.remove_via_functionName);
+router.delete('/:functionName', ReferenceExampleController.remove_via_functionName);
 
 /*
  * DELETE
