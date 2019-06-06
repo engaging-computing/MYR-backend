@@ -1,4 +1,5 @@
 let ReferenceExampleModel = require('../models/ReferenceExampleModel.js');
+let CourseModel = require('../models/CourseModel.js');
 let verify = require('../authorization/verifyAuth.js');
 
 /**
@@ -101,7 +102,21 @@ module.exports = {
                     message: 'No such ReferenceExample'
                 });
             }
-            return res.json(ReferenceExample);
+            CourseModel.findOne({ shortname: ReferenceExample.suggestedCourse }, function (err, Course) {
+                if (err) {
+                    return res.status(500).json({
+                        message: 'Error when getting course name.',
+                        error: err
+                    });
+                }
+                if (!Course) {
+                    return res.json(ReferenceExample);
+                }
+                let courseName = { 'suggestedCourseName': Course.name };
+                let returnCourse = { ...ReferenceExample.toObject(), ...courseName };
+                return res.json(returnCourse);
+            });
+            // return res.json(ReferenceExample);
         });
     },
 
@@ -139,10 +154,7 @@ module.exports = {
                         });
                     }
                     else {
-                        console.log(newReferenceExample)
-                        console.log(ReferenceExample)
                         ReferenceExample = newReferenceExample;
-                        console.log(ReferenceExample)
                         ReferenceExample.save(function (err, ReferenceExample) {
                             if (err) {
                                 return res.status(500).json({
@@ -157,50 +169,6 @@ module.exports = {
             }
         });
     },
-    //     let newReferenceExample = new ReferenceExampleModel({
-    //         functionName: req.body.functionName,
-    //         type: req.body.type,
-    //         info: req.body.info,
-    //         suggestedCourse: req.body.suggestedCourse,
-    //         code: req.body.code
-
-    //     });
-    //     let token = req.headers['x-access-token'];
-
-    //     verify.isAdmin(token).then(function (answer) {
-    //         if (!answer) {
-    //             res.status(401).send('Error 401: Not authorized');
-    //         }
-    //         else {
-    //             ReferenceExampleModel.findOne({ functionName: req.body.functionName }, function (err, ReferenceExample) {
-    //                 if (err) {
-    //                     return res.status(500).json({
-    //                         message: 'Error when creating reference example.',
-    //                         error: err
-    //                     });
-    //                 }
-    //                 if (ReferenceExample != null) {
-    //                     console.log(ReferenceExample)
-    //                     return res.status(409).json({
-    //                         message: 'A reference example with this function name already exists',
-    //                     });
-    //                 }
-    //                 else {
-    //                     ReferenceExample = newReferenceExample;
-    //                     ReferenceExample.save(function (err, ReferenceExample) {
-    //                         if (err) {
-    //                             return res.status(500).json({
-    //                                 message: 'Error when creating reference example',
-    //                                 error: err
-    //                             });
-    //                         }
-    //                         return res.status(201).json(ReferenceExample);
-    //                     });
-    //                 }
-    //             });
-    //         }
-    //     });
-    // },
 
     /**
      * ReferenceExampleController.update()
