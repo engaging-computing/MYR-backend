@@ -1,13 +1,13 @@
-var express = require('express');
-var router = express.Router();
-var bodyParser = require('body-parser');
+let express = require('express');
+let router = express.Router();
+let bodyParser = require('body-parser');
 router.use(bodyParser.urlencoded({ extended: false }));
 router.use(bodyParser.json());
-var UserModel = require('../models/UserModel.js');
+let UserModel = require('../models/UserModel.js');
 
-var jwt = require('jsonwebtoken');
-var bcrypt = require('bcryptjs');
-var config = require('../config/config');
+let jwt = require('jsonwebtoken');
+let bcrypt = require('bcryptjs');
+let config = require('../config/config');
 
 let verify = require('../authorization/verifyAuth.js');
 
@@ -25,22 +25,60 @@ module.exports = {
     list: function (req, res) {
         let token = req.headers['x-access-token'];
 
+        let filter;
+        // let sort;
+        let range;
+        let pageSize;
+        let currentPage;
+        let docConditions;
+        let pageRange;
+        if (req.query.filter != undefined) {
+            filter = JSON.parse(req.query.filter);
+        }
+        // if (req.query.sort != undefined) {
+        //     sort = JSON.parse(req.query.sort);
+        // }
+        if (req.query.range != undefined) {
+            range = JSON.parse("\"" + req.query.range + "\"").split("[");
+            range.splice(0, 1);
+            range = range[0].split("]");
+            range.splice(1, 1);
+            range = range[0].split(",");
+            pageSize = range[1];
+            currentPage = range[0];
+        }
+        if (pageSize != undefined && currentPage != undefined) {
+            pageRange = {
+                'skip': (pageSize * (currentPage - 1)),
+                'limit': Number(pageSize)
+            };
+        }
+
+        docConditions = { ...pageRange };
+        let queryParams = { ...filter };
+
         verify.isAdmin(token).then(function (answer) {
             if (!answer) {
                 res.status(401).send('Error 401: Not authorized');
             }
             else {
-                UserModel.find(function (err, Users) {
+                UserModel.find(queryParams, {}, docConditions, function (err, Users) {
                     if (err) {
                         return res.status(500).json({
                             message: 'Error when getting User.',
                             error: err
                         });
                     }
-                    return res.json(Users);
+                    UserModel.countDocuments(queryParams).exec(function (err, count) {
+                        if (err) {
+                            return next(err);
+                        }
+                        res.set('Total-Documents', count);
+                        return res.json(Users);
+                    });
                 });
             }
-        })
+        });
 
     },
 
@@ -55,7 +93,7 @@ module.exports = {
                 res.status(401).send('Error 401: Not authorized');
             }
             else {
-                var id = req.params.id;
+                let id = req.params.id;
                 UserModel.findOne({ _id: id }, function (err, User) {
                     if (err) {
                         return res.status(500).json({
@@ -71,7 +109,7 @@ module.exports = {
                     return res.json(User);
                 });
             }
-        })
+        });
 
     },
 
@@ -79,16 +117,24 @@ module.exports = {
  * UserController.show_profile()
  */
     show_profile: function (req, res) {
-        var token = req.headers['x-access-token'];
-        if (!token) return res.status(401).send({ auth: false, message: 'No token provided.' });
+        let token = req.headers['x-access-token'];
+        if (!token) {
+            return res.status(401).send({ auth: false, message: 'No token provided.' });
+        }
 
         //res.status(999).send();
         jwt.verify(token, config.secret, function (err, decoded) {
-            if (err) return res.status(500).send({ auth: false, message: 'Failed to authenticate token.' });
+            if (err) {
+                return res.status(500).send({ auth: false, message: 'Failed to authenticate token.' });
+            }
 
             UserModel.findById(decoded.id, { password: 0 }, function (err, user) {
-                if (err) return res.status(500).send("There was a problem finding the user.");
-                if (!user) return res.status(404).send("No user found.");
+                if (err) {
+                    return res.status(500).send("There was a problem finding the user.");
+                }
+                if (!user) {
+                    return res.status(404).send("No user found.");
+                }
                 res.status(200).send(user);
             });
         });
@@ -118,7 +164,9 @@ module.exports = {
                     admin: req.body.admin ? req.body.admin : false
                 });
 
-                UserModel.findOne({ email: req.body.email }, function (err, User) {
+                newUser.email = newUser.email.toLowerCase();    //all emails should be stored in lowercase
+
+                UserModel.findOne({ email: req.body.email.toLowerCase() }, function (err, User) {
                     if (err) {
                         return res.status(500).json({
                             message: 'Error when creating user.',
@@ -131,7 +179,7 @@ module.exports = {
                         });
                     }
                     else {
-                        User = newUser
+                        User = newUser;
                         User.save(function (err, User) {
                             if (err) {
                                 return res.status(500).json({
@@ -139,7 +187,7 @@ module.exports = {
                                     error: err
                                 });
                             }
-                            var token = jwt.sign({ id: User._id }, config.secret, {
+                            let token = jwt.sign({ id: User._id }, config.secret, {
                                 expiresIn: 86400 // expires in 24 hours
                             });
                             return res.status(201).send({ auth: true, token: token });
@@ -147,19 +195,25 @@ module.exports = {
                     }
                 });
             }
-        })
+        });
     },
 
     /**
      * UserController.login()
      */
     login: function (req, res) {
-        UserModel.findOne({ email: req.body.email }, function (err, User) {
-            if (err) return res.status(500).send('Error on the server.');
-            if (!User) return res.status(401).send({ auth: false, token: null });
-            var passwordIsValid = bcrypt.compareSync(req.body.password, User.password);
-            if (!passwordIsValid) return res.status(401).send({ auth: false, token: null });
-            var token = jwt.sign({ id: User._id }, config.secret, {
+        UserModel.findOne({ email: req.body.email.toLowerCase() }, function (err, User) {
+            if (err) {
+                return res.status(500).send('Error on the server.');
+            }
+            if (!User) {
+                return res.status(401).send({ auth: false, token: null });
+            }
+            let passwordIsValid = bcrypt.compareSync(req.body.password, User.password);
+            if (!passwordIsValid) {
+                return res.status(401).send({ auth: false, token: null });
+            }
+            let token = jwt.sign({ id: User._id }, config.secret, {
                 expiresIn: 86400 // expires in 24 hours
             });
             User.last_login = new Date();
@@ -171,7 +225,7 @@ module.exports = {
                     //});
                 }
             });
-            res.status(200).send({ auth: true, token: token });
+            res.status(200).send({ auth: true, isAdmin: User.admin, token: token });
         });
     },
 
@@ -193,7 +247,7 @@ module.exports = {
                 res.status(401).send('Error 401: Not authorized');
             }
             else {
-                var id = req.params.id;
+                let id = req.params.id;
                 UserModel.findOne({ _id: id }, function (err, User) {
                     if (err) {
                         return res.status(500).json({
@@ -208,9 +262,12 @@ module.exports = {
                     }
 
                     User.name = req.body.name ? req.body.name : User.name;
-                    User.email = req.body.email ? req.body.email : User.email;
-                    User.password = req.body.password ? req.body.password : User.password;
-                    User.admin = req.body.admin ? req.body.admin : User.admin;
+                    User.email = req.body.email ? req.body.email.toLowerCase() : User.email;
+                    if (req.body.password != undefined && req.body.password != User.password) {
+                        User.password = req.body.password ? bcrypt.hashSync(req.body.password, 8) : User.password;
+                    }
+                    User.admin = req.body.admin != null ? req.body.admin : User.admin;
+                    User.subscribed = req.body.subscribed != null ? req.body.subscribed : User.subscribed;
 
                     User.save(function (err, User) {
                         if (err) {
@@ -224,7 +281,7 @@ module.exports = {
                     });
                 });
             }
-        })
+        });
 
     },
 
@@ -239,7 +296,7 @@ module.exports = {
                 res.status(401).send('Error 401: Not authorized');
             }
             else {
-                var id = req.params.id;
+                let id = req.params.id;
                 UserModel.findByIdAndRemove(id, function (err, User) {
                     if (err) {
                         return res.status(500).json({
@@ -247,10 +304,10 @@ module.exports = {
                             error: err
                         });
                     }
-                    return res.status(204).json();
+                    return res.status(204).json(User);
                 });
             }
-        })
+        });
 
     }
 };

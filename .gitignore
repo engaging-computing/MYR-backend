@@ -8,10 +8,15 @@
 
 # production
 /build
-/public
+/public/myr
+/public/admin
 
 # local config
 /config
+
+# database exports
+/dump
+dump.zip
 
 # misc
 .DS_Store

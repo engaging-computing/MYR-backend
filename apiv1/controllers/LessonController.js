@@ -17,9 +17,30 @@ module.exports = {
     let lessonNumber = req.query.lessonNumber ? { lessonNumber: req.query.lessonNumber } : null;
     let previous = req.query.previous ? { previous: req.query.previous } : null;
     let next = req.query.next ? { next: req.query.next } : null;
+
+    let range;
+    let pageSize;
+    let currentPage;
+    if (req.query.range != undefined) {
+      range = JSON.parse("\"" + req.query.range + "\"").split("[");
+      range.splice(0, 1);
+      range = range[0].split("]");
+      range.splice(1, 1);
+      range = range[0].split(",");
+      pageSize = range[1];
+      currentPage = range[0];
+    }
+    let filter;
+    if (pageSize != undefined && currentPage != undefined) {
+      filter = {
+        'skip': (pageSize * (currentPage - 1)),
+        'limit': Number(pageSize)
+      };
+    }
+
     let queryParams = { ...category, ...lessonNumber, ...previous, ...next };
 
-    LessonModel.find(queryParams, function (err, Lesson) {
+    LessonModel.find(queryParams, {}, filter, function (err, Lesson) {
       if (err) {
         return res.status(500).json({
           message: 'Error when getting Lesson.',
@@ -31,7 +52,13 @@ module.exports = {
           message: 'No such Lesson'
         });
       }
-      return res.json(Lesson);
+      LessonModel.countDocuments().exec(function (err, count) {
+        if (err) {
+          return next(err);
+        }
+        res.set('Total-Documents', count);
+        return res.json(Lesson);
+      });
     });
   },
 
@@ -84,7 +111,7 @@ module.exports = {
    * Will not allow duplicate lesson numbers
    */
   create: function (req, res) {
-    let newLesson = new LessonModel({
+    let Lesson = new LessonModel({
       lessonNumber: req.body.lessonNumber,
       name: req.body.name,
       prompt: req.body.prompt,
@@ -101,33 +128,17 @@ module.exports = {
         res.status(401).send('Error 401: Not authorized');
       }
       else {
-        LessonModel.findOne({ lessonNumber: req.body.lessonNumber }, function (err, Lesson) {
+        Lesson.save(function (err, Lesson) {
           if (err) {
             return res.status(500).json({
-              message: 'Error when creating lesson.',
+              message: 'Error when creating Lesson',
               error: err
             });
           }
-          if (Lesson != null) {
-            return res.status(409).json({
-              message: 'A lesson with this lesson number already exists',
-            });
-          }
-          else {
-            Lesson = newLesson
-            Lesson.save(function (err, Lesson) {
-              if (err) {
-                return res.status(500).json({
-                  message: 'Error when creating Lesson',
-                  error: err
-                });
-              }
-              return res.status(201).json(Lesson);
-            });
-          }
+          return res.status(201).json(Lesson);
         });
       }
-    })
+    });
   },
 
   /**
@@ -135,10 +146,7 @@ module.exports = {
    */
   update: function (req, res) {
     let token = req.headers['x-access-token'];
-    console.log('*****');
-    console.log('token = ' + token);
-    console.log('*****');
-    console.log(req.body)
+
     verify.isAdmin(token).then(function (answer) {
       if (!answer) {
         res.status(401).send('Error 401: Not authorized');
@@ -166,8 +174,7 @@ module.exports = {
           Lesson.categories = req.body.categories ? req.body.categories : Lesson.categories;
           Lesson.next = req.body.next ? req.body.next : Lesson.next;
           Lesson.previous = req.body.previous ? req.body.previous : Lesson.previous;
-          console.log('*****');
-          console.log(Lesson)
+
           Lesson.save(function (err, Lesson) {
             if (err) {
               return res.status(500).json({
@@ -180,7 +187,7 @@ module.exports = {
           });
         });
       }
-    })
+    });
   },
 
   /**
@@ -228,7 +235,7 @@ module.exports = {
           });
         });
       }
-    })
+    });
 
 
 
@@ -253,10 +260,10 @@ module.exports = {
               error: err
             });
           }
-          return res.status(200).json();
+          return res.status(200).json(Lesson);
         });
       }
-    })
+    });
 
   },
 
@@ -279,10 +286,10 @@ module.exports = {
               error: err
             });
           }
-          return res.status(200).json();
+          return res.status(204).json(Lesson);
         });
       }
-    })
+    });
 
   }
 };
