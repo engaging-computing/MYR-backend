@@ -14,4 +14,3 @@ router.delete('/:id', CourseController.remove);
 
 module.exports = router;
 
-//todo: remove numbers
