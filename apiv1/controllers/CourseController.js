@@ -229,7 +229,7 @@ module.exports = {
                     Course.shortname = req.body.shortname ? req.body.shortname : Course.shortname;
                     Course.lessons = req.body.lessons ? req.body.lessons : Course.lessons;
                     Course.difficulty = req.body.difficulty ? req.body.difficulty : Course.difficulty;
-                    Course.difficulty = req.body.categories ? req.body.categories : Course.categories;
+                    Course.categories = req.body.categories ? req.body.categories : Course.categories;
                     Course.description = req.body.description ? req.body.description : Course.description;
 
                     Course.save(function (err, Course) {
