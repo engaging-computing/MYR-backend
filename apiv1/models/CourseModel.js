@@ -6,7 +6,7 @@ let CourseSchema = new Schema({
     'name': String,
     'difficulty': {
         type: Number,
-        enum: [1, 2, 3, 4],
+        enum: [0, 1, 2, 3],
     },
     'categories': [{
         type: String,
