@@ -10,7 +10,7 @@ let CourseSchema = new Schema({
     },
     'categories': [{
         type: String,
-        enum: ["geometry", "transformations", "animations", "groups", "firstTimer", "teachers"],
+        enum: ["geometry", "transformations", "animations", "groups", "firstTimer", "teachers", "misc"],
     }],
     'description': String,
     'lessons': Array

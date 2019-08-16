@@ -30,3 +30,4 @@ yarn-debug.log*
 yarn-error.log*
 .vscode
 package-lock.json
+mongofix.sh
