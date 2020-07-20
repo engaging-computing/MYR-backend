@@ -13,6 +13,7 @@
 
 # local config
 /config
+/uploads
 
 # database exports
 /dump
@@ -29,5 +30,6 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .vscode
-package-lock.json
-mongofix.sh
+
+.env*
+!.env.example
