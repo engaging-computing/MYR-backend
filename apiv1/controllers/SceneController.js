@@ -1,5 +1,5 @@
 let { verifyGoogleToken, isAdmin } = require('../authorization/verifyAuth.js');
-const { deleteImage, destFolder } = require('./ImageController');
+const { deleteImage, destFolder, createImage } = require('./ImageController');
 let SceneSchema = require('../models/SceneModel');
 
 const ObjectId = require('mongoose').Types.ObjectId;
@@ -51,6 +51,26 @@ function buildScene(body, settings, dest = undefined){
 }
 
 module.exports = {
+    requireAuth: async function(req, res, next) {
+        if(!req.headers['x-access-token']) {
+            return res.status(400).json({
+                message: "No authorization token sent",
+                error: "Bad Request"
+            });
+        }
+
+        req.uid = await verifyGoogleToken(req.headers['x-access-token']);
+        req.admin = await isAdmin(req.header['x-access-token']);
+
+        if(!req.uid && !req.admin) {
+            return res.status(401).json({
+                message: "Invalid token sent",
+                error: "Unauthorized"
+            });
+        }
+
+        next();
+    },
     create: async function(req, res){
         let body = req.body;
         if(Object.keys(body).length === 0 || !req.headers['x-access-token']){ //Check if a body was supplied
@@ -167,9 +187,12 @@ module.exports = {
             });
         }
         
-        let result = deleteImage(id);
-        if(result !== true && result.errorCode === 500) {
-            return resp.status(500).json(result);
+        try {
+            deleteImage(id);
+        }catch(err) {
+            if(err.errorCode !== 404) {
+                return resp.status(err.errorCode).json(err);
+            }
         }
 
         try{
@@ -336,6 +359,100 @@ module.exports = {
         return resp.status(200).json({
             id: scene._id,
             imgError: imgError
+        });
+    },
+    export: async function(req, resp) {
+        const exportedFileds = {
+            name: 1,
+            code: 1,
+            desc: 1,
+            settings: 1,
+            _id: 1 //Skip _id
+        };
+        const id = req.query.id;
+        const respHeaders = {
+            "Content-Disposition": "attachment; filename=\"MYR-export.json\""
+        };
+
+        if(!req.uid) {
+            return resp.status(501).json({
+                message: "An admin cannot export scenes at this time",
+                error: "Not impelmented"
+            });
+        }
+
+        let scenes;
+        try {
+            if(id) {
+                scenes = await SceneSchema.find({uid: req.uid, _id: ObjectId(id)}, exportedFileds).exec();
+            }else {
+                scenes = await SceneSchema.find({uid: req.uid}, exportedFileds).exec();
+            }
+        }catch(err) {
+            return resp.status(500).json({
+                message: "Error fetching scenes",
+                error: err
+            });
+        }
+        if(!scenes){
+            return resp.status(204).send();
+        }
+        let output = [];
+
+        scenes.forEach(scene => {
+            const imgBase64 = fs.readFileSync(`${destFolder}/${scene._id}.jpg`).toString('base64');
+            const sceneObj = scene.toObject();
+
+            sceneObj.image = imgBase64;
+            delete sceneObj._id;
+            delete sceneObj.settings.collectionID;
+            output.push(sceneObj);
+        });
+
+        return resp.status(200).set('Content-Disposition', respHeaders['Content-Disposition']).json(output);
+    },
+    import: async function(req, resp) {
+        let body = req.body;
+        if(!req.uid) {
+            return resp.status(501).json({
+                message: "An admin cannot import a scene at this time",
+                error: "Not Impelmented"
+            });
+        }
+        
+        let imported = 0;
+        let errs = {
+            
+        };
+
+        try {
+            for(const scene of body) {
+                //Remove foriegn keys from the scene
+                delete scene._id;
+                delete scene.settings.collectionID;
+                
+                if(scene.name && scene.code && scene.settings && scene.image) {
+                    let newScene = buildScene(scene, scene.settings);
+                    newScene.uid = ObjectId(req.uid);
+                    try {
+                        let dbScene = await SceneSchema.create(newScene);
+                        createImage(scene.image, dbScene._id);
+                        ++imported;
+                    }catch(err) {
+                        errs.get = err;
+                    }
+                }
+            }
+        }catch(err) {
+            return resp.status(400).json({
+                message: "Error parsing body",
+                error: "Bad Request"
+            });
+        }
+        
+        return resp.status(200).json({
+            totalImported: imported,
+            errors: errs
         });
     }
 };

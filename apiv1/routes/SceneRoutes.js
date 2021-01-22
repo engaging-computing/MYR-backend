@@ -5,6 +5,9 @@ let SceneController = require('../controllers/SceneController.js');
 router.get("/", SceneController.list);
 router.post("/", SceneController.create);
 
+router.get("/export", SceneController.requireAuth, SceneController.export);
+router.post("/import", SceneController.requireAuth, SceneController.import);
+
 router.get("/example", SceneController.getExamples);
 router.post("/example", SceneController.promoteScene);
 
