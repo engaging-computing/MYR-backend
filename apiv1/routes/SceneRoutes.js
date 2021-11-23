@@ -12,4 +12,6 @@ router.get("/id/:id", SceneController.getByID);
 router.put("/id/:id", SceneController.update);
 router.delete("/id/:id", SceneController.delete);
 
+router.get("/export", SceneController.export);
+
 module.exports = router;

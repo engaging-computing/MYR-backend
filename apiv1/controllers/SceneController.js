@@ -337,5 +337,48 @@ module.exports = {
             id: scene._id,
             imgError: imgError
         });
+    },
+    export: async function(req, resp) {
+        const exportFields = {
+            settings: 1,
+            code: 1,
+            desc: 1,
+            _id: 1
+        };
+        let id = req.query.id;
+        if(!req.headers['x-access-token']) {
+            return resp.status(400).json({
+                message: "Missing user ID",
+                error: "Bad Request"
+            });
+        }
+
+        let uid = await verifyGoogleToken(req.headers['x-access-token']);
+        if(!uid) {
+            return resp.status(401).json(invalid_token);
+        }
+
+        let scenes = [];
+        //Export all scenes if no id is specified in the query
+        if(!id) {
+            scenes = await SceneSchema.find({"uid": uid}, exportFields);
+        } else {
+            scenes = await SceneSchema.find({"uid": uid, "_id": ObjectId(id)}, exportFields);
+        }
+        
+        if(scenes.length <= 0) {
+            return resp.status(204).send();
+        }
+
+        let output = [];
+        scenes.forEach((scene) => {
+            const imgBase64 = fs.readFileSync(`${destFolder}/${scene._id}.jpg`).toString('base64');
+            const sceneObj = scene.toObject();
+
+            sceneObj.image = imgBase64;
+            output.push(sceneObj);
+        });
+
+        return resp.status(200).json(output);
     }
 };
