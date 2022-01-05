@@ -19,7 +19,7 @@ function saveImage(base64Data, id) {
         let result = base64Data.split(",")[1];
         data = (result !== undefined ? result : base64Data);
     }catch(e){
-        data = base64;
+        data = base64Data;
     }
 
     try{

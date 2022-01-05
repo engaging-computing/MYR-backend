@@ -13,5 +13,6 @@ router.put("/id/:id", SceneController.update);
 router.delete("/id/:id", SceneController.delete);
 
 router.get("/export", SceneController.export);
+router.post("/import", SceneController.import);
 
 module.exports = router;
