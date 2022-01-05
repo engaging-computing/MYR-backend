@@ -1,5 +1,5 @@
 let { verifyGoogleToken, isAdmin } = require('../authorization/verifyAuth.js');
-const { deleteImage, destFolder } = require('./ImageController');
+const { deleteImage, destFolder, saveImage } = require('./ImageController');
 let { SceneSchema } = require('../models/SceneModel');
 
 const ObjectId = require('mongoose').Types.ObjectId;
@@ -380,5 +380,45 @@ module.exports = {
         });
 
         return resp.status(200).json(output);
+    },
+    import: async function(req, resp) {
+        let body = req.body;
+        if(!req.headers['x-access-token']) {
+            return resp.status(400).json({
+                message: "Missing user ID",
+                error: "Bad Request"
+            });
+        }
+
+        let importedScenes = [];
+        let uid = await verifyGoogleToken(req.headers['x-access-token']);
+        if(!uid) {
+            return resp.status(401).json(invalid_token);
+        }
+
+        for(let scene of body) {
+            if('name' in scene && 'settings' in scene && 'code' in scene) {
+                //Remove potential collision fields
+                delete scene.settings.collectionID;
+                delete scene._id;
+                delete scene.createTime;
+                delete scene.updateTime;
+
+                scene.uid = uid;
+
+                const dbScene = buildScene(scene, scene.settings);
+
+                await dbScene.save();
+                saveImage(scene.image, `${destFolder}/${scene._id}.jpg`);
+                importedScenes.push(dbScene._id);
+            }
+        }
+        
+        if(importedScenes.length > 0) {
+            return resp.status(200).json({
+                importedScenes: importedScenes
+            });
+        }
+        return resp.status(204).send();
     }
 };
