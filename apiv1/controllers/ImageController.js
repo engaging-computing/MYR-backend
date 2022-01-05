@@ -29,12 +29,12 @@ function saveImage(base64Data, id) {
         return false;
     }
 
-    if(!isImage(path)) {
+    if(!isImage({path: path})) {
         cleanup(path);
         return false;
     }
 
-    return createImage(base64, `${imgDest}/${id}.jpg`);
+    return createImage(base64Data, `${imgDest}/${id}.jpg`);
 }
 
 function deleteImage(id){

@@ -340,6 +340,7 @@ module.exports = {
     },
     export: async function(req, resp) {
         const exportFields = {
+            name: 1,
             settings: 1,
             code: 1,
             desc: 1,
@@ -404,12 +405,11 @@ module.exports = {
                 delete scene.createTime;
                 delete scene.updateTime;
 
-                scene.uid = uid;
-
-                const dbScene = buildScene(scene, scene.settings);
+                let dbScene = buildScene(scene, scene.settings);
+                dbScene.uid = uid;
 
                 await dbScene.save();
-                saveImage(scene.image, `${destFolder}/${scene._id}.jpg`);
+                saveImage(scene.image, dbScene._id);
                 importedScenes.push(dbScene._id);
             }
         }
