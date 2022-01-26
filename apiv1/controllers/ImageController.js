@@ -11,6 +11,32 @@ const notFound = `${root}/public/img/no_preview.jpg`;
 
 const tmp = "/tmp";
 
+function saveImage(base64Data, id) {
+    let data = "";
+    const path = `${tmp}/${id}-${Date.now()}.jpg`;
+
+    try{
+        let result = base64Data.split(",")[1];
+        data = (result !== undefined ? result : base64Data);
+    }catch(e){
+        data = base64Data;
+    }
+
+    try{
+        fs.writeFileSync(path, data, "base64");
+    }catch(err){
+        console.error(err);
+        return false;
+    }
+
+    if(!isImage({path: path})) {
+        cleanup(path);
+        return false;
+    }
+
+    return createImage(base64Data, `${imgDest}/${id}.jpg`);
+}
+
 function deleteImage(id){
     if(!fs.existsSync(`${imgDest}/${id}.jpg`)){
         return {
@@ -293,5 +319,6 @@ module.exports = {
     },
     
     deleteImage: deleteImage,
+    saveImage: saveImage,
     destFolder: imgDest
 };

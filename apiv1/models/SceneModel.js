@@ -29,4 +29,4 @@ let SceneSchema = new Schema({
 module.exports = {
     "SceneSchema": mongoose.model('Scene', SceneSchema),
     "Settings": Settings
-}
+};

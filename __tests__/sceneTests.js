@@ -213,3 +213,79 @@ describe("Scene Creation, Deletion, and Updates", () =>{
         });
     });
 });
+
+describe("Scene importing", () => {
+    const uid = ObjectId('5ece88ff0d947fc9d912a437');
+    const endpoint = '/apiv1/scenes/import';
+    const testScene = {
+        name: 'Test Scene',
+        code: 'box();',
+        settings: {
+            canFly: true
+        }
+    };
+
+    const invalidScenes = [
+        {
+            code: 'box();',
+            settings: {
+                canFly: true
+            }
+        },
+        {
+            name: 'Test Scene',
+            settings: {
+                canFly: true
+            }
+        },
+        {
+            name: 'Test Scene',
+            code: 'box();',
+        },
+        {
+            garbage: "hi"
+        }
+    ];
+    it('Requires an authentication token', () => {
+        return request(app).post(endpoint).send([testScene])
+            .expect(400);
+    });
+    it('Invalid auth token will reject request', () => {
+        return request(app).post(endpoint).send([testScene])
+            .set({"x-access-token": "bobross"}).expect(401);
+    });
+    it('Scene without name should not be imported', () => {
+        return request(app).post(endpoint).send([invalidScenes[0]])
+            .set({"x-access-token": getToken(uid)}).expect(204);
+    });
+    it('Scene without code should not be imported', () => {
+        return request(app).post(endpoint).send([invalidScenes[1]])
+            .set({"x-access-token": getToken(uid)}).expect(204);
+    });
+    it('Scene without settings should not be imported', () => {
+        return request(app).post(endpoint).send([invalidScenes[2]])
+            .set({"x-access-token": getToken(uid)}).expect(204);
+    });
+    it('Blantanly invalid scene should be skipped', () => {
+        return request(app).post(endpoint).send([invalidScenes[3]])
+            .set({"x-access-token": getToken(uid)}).expect(204);
+    });
+    it('Single scene should be able to be imported', () => {
+        return request(app).post(endpoint).send([testScene])
+            .set({"x-access-token": getToken(uid)}).expect(200).then(async (resp) => {
+                for(let id of resp.body.importedScenes) {
+                    const res = await request(app).get(`/apiv1/scenes/id/${id}`).expect(200);
+                    assert(sceneIsEqual(testScene, res.body, testScene.name), "Fetched scenes do not match");
+                }
+            });
+    });
+    it('Multiple scenes should be able to be imported', () => {
+        return request(app).post(endpoint).send([testScene, testScene])
+            .set({"x-access-token": getToken(uid)}).expect(200).then(async (resp) => {
+                for(let id of resp.body.importedScenes) {
+                    const res = await request(app).get(`/apiv1/scenes/id/${id}`).expect(200);
+                    assert(sceneIsEqual(testScene, res.body, testScene.name), "Fetched scenes do not match");
+                }
+            });
+    });
+});
