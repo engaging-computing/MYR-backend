@@ -78,18 +78,21 @@ module.exports = {
     },
     getUserSetting : async function(req,resp){
         let uid = req.headers['x-access-token'];
-        if(!uid){
+        
+        if(!uid || uid === "1"){
             return resp.status(401).json({
-                message: "No userID supplied",
+                message: "Invalid userID supplied",
                 error: "Unauthorized"
             });
         }
 
-        if(uid !== "1"){
-            uid = await verifyGoogleToken(req.headers['x-access-token']);
-            if(!uid){
-                return resp.status(401).json(invalid_token);
-            }
+        uid = await verifyGoogleToken(req.headers['x-access-token']);
+
+        if(!uid){
+            return resp.status(404).json({
+                message: "Failed to Found the supplied UserID",
+                error: "Not Found"
+            });
         }
 
         let setting; 
@@ -158,6 +161,6 @@ module.exports = {
             });
         }
 
-        return resp.status(200).json(googleId);//No Content
+        return resp.status(200).json(googleId);
     }
 };
