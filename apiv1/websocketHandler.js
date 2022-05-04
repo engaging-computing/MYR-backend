@@ -76,8 +76,8 @@ function handleSaveEvent(socketList, socket) {
         }
         conns.clientIDs.forEach(id => {
             if(id !== socket.id){
-                console.log(`Updating ${socket.id}`);
-                socketList[id].emit("update");
+                console.log(`Sneding update to socket: ${id}`);
+                socketList.get(id).emit("update");
             }
         });
     });
